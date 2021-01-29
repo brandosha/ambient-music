@@ -65,6 +65,8 @@ convolverBuffers.meta.promise = Promise.all(
   })
 )
 
+const autosave = JSON.parse(localStorage.getItem('autosave'))
+
 var app = new Vue({
   data: {
     loading: true,
@@ -82,9 +84,16 @@ var app = new Vue({
     scaleChords,
 
     chordExtensions,
+
+    ambientInterval: 15,
+    stopAmbient: null
   },
   el: '#app',
   methods: {
+    playChordOnUpdate(updatedChord) {
+      if (this.loading || this.stopAmbient) return // Don't play if loading or playing ambient
+      this.playChord(updatedChord)
+    },
     /** @param { (string[] | number[]) } tones */
     playChord(tones) {
       let startDelay = 0.1
@@ -98,29 +107,88 @@ var app = new Vue({
         return a - b
       })
 
-      let convolver = audioContext.destination // Skip convolver unless enabled
-      if (this.convolverBuffer) {
-        convolver = audioContext.createConvolver()
-        convolver.buffer = convolverBuffers[this.convolverBuffer]
+      tones.forEach(tone => {
+        this.playTone(tone, startDelay)
+        startDelay += 0.05
+      })
+    },
+    playTone(tone, delay = 0, instrument, convolverBuffer) {
+      instrument = instrument || this.instrument
+      convolverBuffer = convolverBuffer || this.convolverBuffer
 
-        if (this.convolverBuffer == 'outdoorBlastoff') { // Increase volume for blastoff reverb
+      let convolver = audioContext.destination // Skip convolver unless enabled
+      if (convolverBuffer) {
+        convolver = audioContext.createConvolver()
+        convolver.buffer = convolverBuffers[convolverBuffer]
+
+        if (convolverBuffer == 'outdoorBlastoff') { // Increase volume for blastoff reverb
           const gainNode = audioContext.createGain()
-          gainNode.gain.value = 4
+          gainNode.gain.value = 5
 
           convolver.connect(gainNode)
           gainNode.connect(audioContext.destination)
         } else convolver.connect(audioContext.destination)
       }
 
-      tones.forEach(tone => {
-        sampler.playSample(this.instrument, tone, startDelay, 0, convolver)
-        startDelay += 0.05
-      })
+      sampler.playSample(instrument, tone, delay, 0, convolver)
     },
     loadSamples() {
       this.loading = true
       sampler.loadSamples(this.instrument)
         .then(() => this.loading = false)
+    },
+    getJSON() {
+      return JSON.parse(JSON.stringify({
+        instrument: this.instrument,
+        convolverBuffer: this.convolverBuffer,
+        scaleRoot: this.scaleRoot,
+        majorScale: this.majorScale,
+        chordDegree: this.chordDegree,
+        chordExtensions: this.chordExtensions,
+        ambientInterval: this.ambientInterval
+      }))
+    },
+    loadJSON(save) {
+      this.instrument = save.instrument
+      this.convolverBuffer = save.convolverBuffer
+      this.scaleRoot = save.scaleRoot
+      this.majorScale = save.majorScale
+      this.chordDegree = save.chordDegree
+      this.chordExtensions = save.chordExtensions
+      this.ambientInterval = save.ambientInterval || this.ambientInterval
+    },
+
+    startAmbient(averageInterval) {
+      averageInterval = averageInterval || this.ambientInterval
+
+      const space = averageInterval
+      const spaceDifference = averageInterval / 3
+
+      const intervals = this.currentChord.map(() => space + (Math.random() * spaceDifference * 2) - spaceDifference)
+      const initialDelays = this.currentChord.map(() => Math.random() * space)
+
+      const timeoutHandles = []
+      const intervalHandles = []
+
+      const instrument = this.instrument
+      const convolverBuffer = this.convolverBuffer
+
+      this.currentChord.forEach((tone, i) => {
+        const timeoutHandle = setTimeout(() => {
+          this.playTone(tone, 0, instrument, convolverBuffer)
+          const intervalHandle = setInterval(() => this.playTone(tone, 0, instrument, convolverBuffer), intervals[i] * 1000)
+          intervalHandles.push(intervalHandle)
+        }, initialDelays[i] * 1000)
+
+        timeoutHandles.push(timeoutHandle)
+      })
+
+      this.stopAmbient = () => {
+        timeoutHandles.forEach(handle => clearTimeout(handle))
+        intervalHandles.forEach(handle => clearInterval(handle))
+
+        this.stopAmbient = null
+      }
     }
   },
   computed: {
@@ -141,8 +209,10 @@ var app = new Vue({
 
       const currentChord = scale.chord(this.chordDegree, extensions, true)
 
-      if (!this.loading) this.playChord(currentChord)
-
+      console.log('updated computed chord')
+      localStorage.setItem('autosave', JSON.stringify(this.getJSON()))
+      this.playChordOnUpdate(currentChord)
+      
       return currentChord
     }
   },
@@ -159,4 +229,4 @@ var app = new Vue({
   }
 })
 
-
+if (autosave) app.loadJSON(autosave)

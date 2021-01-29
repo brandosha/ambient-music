@@ -9,22 +9,18 @@
     <link href="style.css" rel="stylesheet" type="text/css" />
   </head>
   <body>
-    <div id="app" class="p-3">
-      <a href="https://teropa.info/blog/2016/07/28/javascript-systems-music.html#brian-enoambient-1-music-for-airports-2-11978">
-        Inspiration
-      </a>
-
+    <div id="app" class="container py-3">
       <fieldset :disabled="loading">
-        <div class="mt-2">
-          <label>
+        <label>
+          <h5>
             Instrument
-            <select v-model="instrument" :disabled="loading">
-              <option v-for="instrumentId in allInstruments" :value="instrumentId">
-                {{ instrumentId.split('_').join(' ') }}
-              </option>
-            <select>
-          </label>
-        </div>
+          </h5>
+          <select v-model="instrument" :disabled="loading">
+            <option v-for="instrumentId in allInstruments" :value="instrumentId">
+              {{ instrumentId.split('_').join(' ') }}
+            </option>
+          <select>
+        </label>
 
         <h5 class="mt-3">
           Reverb
@@ -128,9 +124,35 @@
         Notes: {{ currentChord.join(' ').split('b').join('♭') }}
       </div>
 
-      <button @click="playChord()" class="btn btn-primary mt-2" :disabled="loading">
+      <button @click="playChord()" class="btn btn-dark mt-2" :disabled="loading">
         {{ loading ? 'Loading...' : 'Play Chord' }}
       </button>
+
+      <h5 class="mt-4">
+        Ambient Music
+      </h5>
+
+      <div class="d-flex align-items-center px-2">
+        <label for="avg-interval" class="pe-4">
+          Average Interval
+        </label>
+        <div style="width: 4em;">
+          <input v-model.number="ambientInterval" id="avg-interval" type="number" class="form-control">
+        </div>
+      </div>
+
+      <button v-if="!stopAmbient" @click="startAmbient()" class="btn btn-primary mt-3" :disabled="loading">
+        Start Ambient
+      </button>
+      <button v-else @click="stopAmbient()" class="btn btn-primary mt-3">
+        Stop Ambient
+      </button>
+
+      <div class="mt-4">
+        <a href="https://teropa.info/blog/2016/07/28/javascript-systems-music.html#brian-enoambient-1-music-for-airports-2-11978">
+          Inspiration
+        </a>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
