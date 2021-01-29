@@ -43,11 +43,36 @@ const chordExtensions = {
   '10': { use: false },
 }
 
+const convolverBuffers = {
+  'outdoorBlastoff': null,
+  'roomConcertHall': null,
+  'roomHuge': null,
+  'roomPool': null,
+  meta: {
+    promise: null
+  }
+}
+ 
+convolverBuffers.meta.promise = Promise.all(
+  Object.keys(convolverBuffers).map(bufferName => {
+    if (bufferName === 'meta') return
+
+    const fileName = bufferName[0].toUpperCase() + bufferName.slice(1)
+    fetch('impulses/' + fileName + '.aiff')
+      .then(res => res.arrayBuffer())
+      .then(buf => audioContext.decodeAudioData(buf))
+      .then(audio => convolverBuffers[bufferName] = audio)
+  })
+)
+
 var app = new Vue({
   data: {
     loading: true,
     instrument: 'acoustic_grand_piano',
     allInstruments: soundFont.instruments,
+
+    convolverBuffer: null,
+    convolverBuffers,
 
     scaleRoot: 'C4',
     majorScale: true,
@@ -73,8 +98,22 @@ var app = new Vue({
         return a - b
       })
 
+      let convolver = audioContext.destination // Skip convolver unless enabled
+      if (this.convolverBuffer) {
+        convolver = audioContext.createConvolver()
+        convolver.buffer = convolverBuffers[this.convolverBuffer]
+
+        if (this.convolverBuffer == 'outdoorBlastoff') { // Increase volume for blastoff reverb
+          const gainNode = audioContext.createGain()
+          gainNode.gain.value = 4
+
+          convolver.connect(gainNode)
+          gainNode.connect(audioContext.destination)
+        } else convolver.connect(audioContext.destination)
+      }
+
       tones.forEach(tone => {
-        sampler.playSample(this.instrument, tone, startDelay)
+        sampler.playSample(this.instrument, tone, startDelay, 0, convolver)
         startDelay += 0.05
       })
     },
@@ -112,7 +151,10 @@ var app = new Vue({
       this.loadSamples()
     }
   },
-  mounted() {
+  async mounted() {
+    await convolverBuffers.meta.promise
+    delete convolverBuffers.meta
+
     this.loadSamples()
   }
 })
