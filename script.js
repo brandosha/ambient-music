@@ -7,30 +7,22 @@ const scale = new Scale('C4', IntervalPattern.major)
 
 const scaleChords = {
   major: [
-    { numeral: 'I', rootDegree: -8 },
-    { numeral: 'ii', rootDegree: -7 },
-    { numeral: 'iii', rootDegree: -6 },
-    { numeral: 'IV', rootDegree: -5 },
-    { numeral: 'vi', rootDegree: -3 },
     { numeral: 'I', rootDegree: 1 },
     { numeral: 'ii', rootDegree: 2 },
     { numeral: 'iii', rootDegree: 3 },
     { numeral: 'IV', rootDegree: 4 },
+    { numeral: 'V', rootDegree: 5 },
     { numeral: 'vi', rootDegree: 6 },
-    { numeral: 'I', rootDegree: 8 }
+    { numeral: 'viiº', rootDegree: 7 }
   ],
   minor: [
-    { numeral: 'i', rootDegree: -8 },
-    { numeral: 'III', rootDegree: -6 },
-    { numeral: 'iv', rootDegree: -5 },
-    { numeral: 'v', rootDegree: -4 },
-    { numeral: 'VI', rootDegree: -3 },
     { numeral: 'i', rootDegree: 1 },
+    { numeral: 'iiº', rootDegree: 2 },
     { numeral: 'III', rootDegree: 3 },
     { numeral: 'iv', rootDegree: 4 },
     { numeral: 'v', rootDegree: 5 },
     { numeral: 'VI', rootDegree: 6 },
-    { numeral: 'i', rootDegree: 8 }
+    { numeral: 'VII', rootDegree: 7 }
   ]
 }
 
